@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description: 'OneSignal Web Push通知のサンプルアプリケーション',
 }
 
+const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
+if (!appId) {
+  throw new Error(
+    'NEXT_PUBLIC_ONESIGNAL_APP_ID が設定されていません。.env.local または環境変数に App ID を設定してください。'
+  )
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -24,7 +31,7 @@ export default function RootLayout({
               window.OneSignalDeferred = window.OneSignalDeferred || [];
               OneSignalDeferred.push(async function(OneSignal) {
                 await OneSignal.init({
-                  appId: "5de708c8-1532-4889-a647-6b7659c93dff",
+                  appId: "${appId}",
                 });
               });
             `,
