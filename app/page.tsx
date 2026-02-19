@@ -44,25 +44,32 @@ export default function Home() {
               window.OneSignal.User?.PushSubscription !== undefined
             
             if (isAlreadyInitialized) {
-              // 既に初期化されている場合は、状態を確認するだけ
+              // 既に初期化されている場合は、Service Worker復元を待ってから状態を確認
               addLog('SDK読み込み', 'success', 'OneSignal SDKが読み込まれました')
               addLog('初期化', 'success', 'OneSignalは既に初期化されています')
               addLog('接続状態確認', 'processing', 'プッシュ通知の状態を確認しています...')
               
-              const isCurrentlySubscribed = window.OneSignal.User.PushSubscription.optedIn
-              setIsSubscribed(isCurrentlySubscribed)
-              setSubscriptionStatus(
-                isCurrentlySubscribed
-                  ? '✓ プッシュ通知が有効です'
-                  : 'プッシュ通知が無効です'
-              )
-              addLog(
-                '接続状態確認',
-                'success',
-                isCurrentlySubscribed
-                  ? 'プッシュ通知は有効です'
-                  : 'プッシュ通知は無効です'
-              )
+              await new Promise(resolve => setTimeout(resolve, 1500))
+
+              const updateUI = (isSub: boolean) => {
+                setIsSubscribed(isSub)
+                setSubscriptionStatus(isSub ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です')
+                addLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
+              }
+
+              const changeListener = () => {
+                updateUI(window.OneSignal.User?.PushSubscription?.optedIn ?? false)
+              }
+              window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
+
+              let isSub = window.OneSignal.User.PushSubscription.optedIn
+              updateUI(isSub)
+
+              setTimeout(() => {
+                const refreshed = window.OneSignal.User?.PushSubscription?.optedIn ?? false
+                if (refreshed !== isSub) updateUI(refreshed)
+              }, 3000)
+
               setIsLoading(false)
               isInitializedRef.current = true
               return
@@ -75,8 +82,27 @@ export default function Home() {
           addLog('初期化', 'success', 'layoutでOneSignalDeferredにより初期化済み')
           addLog('接続状態確認', 'processing', 'プッシュ通知の状態を確認しています...')
 
-          // layoutのOneSignalDeferredで初期化されるまで待機
-          await new Promise(resolve => setTimeout(resolve, 500))
+          // layoutのOneSignalDeferredで初期化されるまで待機（Service Worker復元に時間がかかるため長めに）
+          await new Promise(resolve => setTimeout(resolve, 1500))
+
+          const updateSubscriptionUI = (isSubscribed: boolean) => {
+            setIsSubscribed(isSubscribed)
+            setSubscriptionStatus(
+              isSubscribed ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です'
+            )
+            addLog(
+              '接続状態確認',
+              'success',
+              isSubscribed ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です'
+            )
+          }
+
+          // 購読変更を監視（ページ再読み込み時のService Worker復元で状態が遅れて反映されるため）
+          const changeListener = () => {
+            const isSub = window.OneSignal.User?.PushSubscription?.optedIn ?? false
+            updateSubscriptionUI(isSub)
+          }
+          window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
 
           // 現在の購読状態を確認
           let isCurrentlySubscribed = false
@@ -84,28 +110,23 @@ export default function Home() {
             if (window.OneSignal.User?.PushSubscription) {
               isCurrentlySubscribed = window.OneSignal.User.PushSubscription.optedIn
             } else if (window.OneSignal.isPushNotificationsEnabled) {
-              // 後方互換性のため、古いAPIも試す
               isCurrentlySubscribed = await window.OneSignal.isPushNotificationsEnabled()
             }
           } catch (e) {
             console.warn('購読状態の確認でエラー:', e)
-            // 通知権限から判断
             isCurrentlySubscribed = window.OneSignal.Notifications?.permission === 'granted'
           }
 
-          setIsSubscribed(isCurrentlySubscribed)
-          setSubscriptionStatus(
-            isCurrentlySubscribed
-              ? '✓ プッシュ通知が有効です'
-              : 'プッシュ通知が無効です'
-          )
-          addLog(
-            '接続状態確認',
-            'success',
-            isCurrentlySubscribed
-              ? 'プッシュ通知は有効です'
-              : 'プッシュ通知は無効です'
-          )
+          updateSubscriptionUI(isCurrentlySubscribed)
+
+          // 復元がさらに遅れる場合のフォールバック（3秒後にもう一度確認）
+          setTimeout(() => {
+            const isSub = window.OneSignal.User?.PushSubscription?.optedIn ?? false
+            if (isSub !== isCurrentlySubscribed) {
+              updateSubscriptionUI(isSub)
+            }
+          }, 3000)
+
           setIsLoading(false)
           isInitializedRef.current = true
         } else {
@@ -146,31 +167,27 @@ export default function Home() {
           addLog('接続状態確認', 'processing', 'プッシュ通知の状態を確認しています...')
           
           try {
-            // 少し待ってから状態を確認
-            await new Promise(resolve => setTimeout(resolve, 500))
+            await new Promise(resolve => setTimeout(resolve, 1500))
             
-            let isCurrentlySubscribed = false
-            if (window.OneSignal.User?.PushSubscription) {
-              isCurrentlySubscribed = window.OneSignal.User.PushSubscription.optedIn
-            } else if (window.OneSignal.isPushNotificationsEnabled) {
-              isCurrentlySubscribed = await window.OneSignal.isPushNotificationsEnabled()
-            } else {
-              isCurrentlySubscribed = window.OneSignal.Notifications?.permission === 'granted'
+            const updateUI = (isSub: boolean) => {
+              setIsSubscribed(isSub)
+              setSubscriptionStatus(isSub ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です')
+              addLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
             }
+            window.OneSignal.User.PushSubscription.addEventListener?.('change', () => {
+              updateUI(window.OneSignal.User?.PushSubscription?.optedIn ?? false)
+            })
             
-            setIsSubscribed(isCurrentlySubscribed)
-            setSubscriptionStatus(
-              isCurrentlySubscribed
-                ? '✓ プッシュ通知が有効です'
-                : 'プッシュ通知が無効です'
-            )
-            addLog(
-              '接続状態確認',
-              'success',
-              isCurrentlySubscribed
-                ? 'プッシュ通知は有効です'
-                : 'プッシュ通知は無効です'
-            )
+            let isCurrentlySubscribed = window.OneSignal.User?.PushSubscription?.optedIn ?? false
+            if (!window.OneSignal.User?.PushSubscription && window.OneSignal.Notifications) {
+              isCurrentlySubscribed = window.OneSignal.Notifications.permission === 'granted'
+            }
+            updateUI(isCurrentlySubscribed)
+            
+            setTimeout(() => {
+              const refreshed = window.OneSignal.User?.PushSubscription?.optedIn ?? false
+              if (refreshed !== isCurrentlySubscribed) updateUI(refreshed)
+            }, 3000)
           } catch (e) {
             addLog('接続状態確認', 'error', `状態の確認に失敗しました: ${e instanceof Error ? e.message : '不明なエラー'}`)
           }
