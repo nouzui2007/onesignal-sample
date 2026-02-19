@@ -68,40 +68,17 @@ export default function Home() {
               return
             }
           } catch (e) {
-            // エラーが発生した場合は初期化が必要
+            // エラーが発生した場合は待機を継続
           }
 
           addLog('SDK読み込み', 'success', 'OneSignal SDKが読み込まれました')
-          
-          // OneSignalの初期化
-          const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'YOUR_ONESIGNAL_APP_ID'
-          
-          if (appId === 'YOUR_ONESIGNAL_APP_ID') {
-            addLog('App ID確認', 'error', 'App IDが設定されていません')
-            setSubscriptionStatus('エラー: App IDが設定されていません')
-            setIsLoading(false)
-            isInitializedRef.current = true
-            return
-          }
-
-          addLog('App ID確認', 'success', `App ID: ${appId.substring(0, 8)}...`)
-          addLog('初期化', 'processing', 'OneSignalを初期化しています...')
-          
-          await window.OneSignal.init({
-            appId: appId,
-            notifyButton: {
-              enable: false, // カスタムボタンを使用するため無効化
-            },
-            allowLocalhostAsSecureOrigin: true, // ローカル開発用
-          })
-
-          addLog('初期化', 'success', 'OneSignalの初期化が完了しました')
+          addLog('初期化', 'success', 'layoutでOneSignalDeferredにより初期化済み')
           addLog('接続状態確認', 'processing', 'プッシュ通知の状態を確認しています...')
 
-          // 少し待ってから状態を確認（初期化が完全に完了するまで待機）
+          // layoutのOneSignalDeferredで初期化されるまで待機
           await new Promise(resolve => setTimeout(resolve, 500))
 
-          // 現在の購読状態を確認（新しいAPIを使用）
+          // 現在の購読状態を確認
           let isCurrentlySubscribed = false
           try {
             if (window.OneSignal.User?.PushSubscription) {

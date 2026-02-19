@@ -18,6 +18,18 @@ export default function RootLayout({
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
           defer
         ></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.OneSignalDeferred = window.OneSignalDeferred || [];
+              OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.init({
+                  appId: "5de708c8-1532-4889-a647-6b7659c93dff",
+                });
+              });
+            `,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>
