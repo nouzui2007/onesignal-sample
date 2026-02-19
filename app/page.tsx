@@ -199,26 +199,16 @@ export default function Home() {
       setIsLoading(true)
       addLog('購読処理', 'processing', 'プッシュ通知の購読を開始しています...')
       
-      await window.OneSignal.Slidedown.promptPush()
+      // optIn(): トークンがない場合は許可プロンプトを表示、ある場合は購読状態に設定
+      await window.OneSignal.User.PushSubscription.optIn()
       
       addLog('購読処理', 'processing', 'ブラウザの許可を待機中...')
       
-      // 少し待ってから状態を確認（ユーザーが許可/拒否を選択する時間を確保）
-      setTimeout(async () => {
-        // 購読状態を再確認（新しいAPIを使用）
-        let isCurrentlySubscribed = false
-        try {
-          if (window.OneSignal.User?.PushSubscription) {
-            isCurrentlySubscribed = window.OneSignal.User.PushSubscription.optedIn
-          } else if (window.OneSignal.isPushNotificationsEnabled) {
-            isCurrentlySubscribed = await window.OneSignal.isPushNotificationsEnabled()
-          } else {
-            isCurrentlySubscribed = window.OneSignal.Notifications?.permission === 'granted'
-          }
-        } catch (e) {
-          console.warn('購読状態の確認でエラー:', e)
-        }
-        
+      // 購読変更を監視（ユーザーが許可/拒否したら即座に反映）
+      let fallbackTimer: ReturnType<typeof setTimeout> | null = null
+      const changeListener = () => {
+        const isCurrentlySubscribed =
+          window.OneSignal.User?.PushSubscription?.optedIn ?? false
         setIsSubscribed(isCurrentlySubscribed)
         setSubscriptionStatus(
           isCurrentlySubscribed
@@ -233,7 +223,14 @@ export default function Home() {
             : 'プッシュ通知の購読が拒否されました'
         )
         setIsLoading(false)
-      }, 1000)
+        if (fallbackTimer) clearTimeout(fallbackTimer)
+        window.OneSignal.User.PushSubscription.removeEventListener?.('change', changeListener)
+      }
+
+      window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
+
+      // イベントが来ない場合のフォールバック（2秒後に状態を確認）
+      fallbackTimer = setTimeout(changeListener, 2000)
     } catch (error) {
       console.error('購読エラー:', error)
       const errorMessage =

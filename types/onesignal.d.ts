@@ -13,6 +13,8 @@ interface OneSignalSDK {
       id?: string
       optIn(): Promise<void>
       optOut(): Promise<void>
+      addEventListener?(event: string, callback: () => void): void
+      removeEventListener?(event: string, callback: () => void): void
     }
     getSubscriptionDataList?(): Promise<Array<{ id: string }>>
   }
