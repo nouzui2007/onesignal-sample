@@ -26,6 +26,8 @@ npm install
 
 ```bash
 NEXT_PUBLIC_ONESIGNAL_APP_ID=your-onesignal-app-id
+# 過去の通知一覧取得に必要（Keys & IDs の REST API Key）
+ONESIGNAL_REST_API_KEY=your-rest-api-key
 ```
 
 ### 3. ローカル開発サーバーの起動
@@ -76,6 +78,9 @@ Vercelダッシュボードで環境変数を設定：
 2. 以下の環境変数を追加：
    - **Name**: `NEXT_PUBLIC_ONESIGNAL_APP_ID`
    - **Value**: あなたのOneSignal App ID
+   - **Environment**: Production, Preview, Development すべてにチェック
+   - **Name**: `ONESIGNAL_REST_API_KEY`
+   - **Value**: OneSignal の REST API Key（Keys & IDs から取得）
    - **Environment**: Production, Preview, Development すべてにチェック
 
 ### Vercelの自動検出設定
