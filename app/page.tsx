@@ -26,6 +26,14 @@ export default function Home() {
     ])
   }
 
+  // 同じステップの既存ログを success/error で置き換える
+  const updateStepLog = (step: string, status: 'success' | 'error', message: string) => {
+    setConnectionLogs((prev) => {
+      const filtered = prev.filter((log) => log.step !== step)
+      return [...filtered, { step, status, message, timestamp: new Date() }]
+    })
+  }
+
   useEffect(() => {
     // 既に初期化済みの場合は何もしない
     if (isInitializedRef.current) {
@@ -54,13 +62,13 @@ export default function Home() {
               const updateUI = (isSub: boolean) => {
                 setIsSubscribed(isSub)
                 setSubscriptionStatus(isSub ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です')
-                addLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
+                updateStepLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
               }
 
               const changeListener = () => {
                 updateUI(window.OneSignal.User?.PushSubscription?.optedIn ?? false)
               }
-              window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
+              window.OneSignal.User?.PushSubscription?.addEventListener?.('change', changeListener)
 
               let isSub = window.OneSignal.User.PushSubscription.optedIn
               updateUI(isSub)
@@ -90,7 +98,7 @@ export default function Home() {
             setSubscriptionStatus(
               isSubscribed ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です'
             )
-            addLog(
+            updateStepLog(
               '接続状態確認',
               'success',
               isSubscribed ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です'
@@ -102,7 +110,7 @@ export default function Home() {
             const isSub = window.OneSignal.User?.PushSubscription?.optedIn ?? false
             updateSubscriptionUI(isSub)
           }
-          window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
+          window.OneSignal.User?.PushSubscription?.addEventListener?.('change', changeListener)
 
           // 現在の購読状態を確認
           let isCurrentlySubscribed = false
@@ -121,9 +129,11 @@ export default function Home() {
 
           // 復元がさらに遅れる場合のフォールバック（3秒後にもう一度確認）
           setTimeout(() => {
-            const isSub = window.OneSignal.User?.PushSubscription?.optedIn ?? false
-            if (isSub !== isCurrentlySubscribed) {
+            try {
+              const isSub = window.OneSignal.User?.PushSubscription?.optedIn ?? false
               updateSubscriptionUI(isSub)
+            } catch {
+              updateSubscriptionUI(false)
             }
           }, 3000)
 
@@ -172,9 +182,9 @@ export default function Home() {
             const updateUI = (isSub: boolean) => {
               setIsSubscribed(isSub)
               setSubscriptionStatus(isSub ? '✓ プッシュ通知が有効です' : 'プッシュ通知が無効です')
-              addLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
+              updateStepLog('接続状態確認', 'success', isSub ? 'プッシュ通知は有効です' : 'プッシュ通知は無効です')
             }
-            window.OneSignal.User.PushSubscription.addEventListener?.('change', () => {
+            window.OneSignal.User?.PushSubscription?.addEventListener?.('change', () => {
               updateUI(window.OneSignal.User?.PushSubscription?.optedIn ?? false)
             })
             
@@ -244,7 +254,7 @@ export default function Home() {
         window.OneSignal.User.PushSubscription.removeEventListener?.('change', changeListener)
       }
 
-      window.OneSignal.User.PushSubscription.addEventListener?.('change', changeListener)
+      window.OneSignal.User?.PushSubscription?.addEventListener?.('change', changeListener)
 
       // イベントが来ない場合のフォールバック（2秒後に状態を確認）
       fallbackTimer = setTimeout(changeListener, 2000)
